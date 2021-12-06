@@ -1,0 +1,60 @@
+version: "3.3"
+
+services:
+
+  postgres:
+    restart: unless-stopped
+    image: postgres:10
+    container_name: Spatial-Multimedia-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
+    volumes:
+      - ./postgres-data/postgres:/var/lib/postgresql/data
+    expose:
+      - ${POSTGRES_PORT}
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    command: -p ${POSTGRES_PORT}
+
+  spatial-multimedia-db:
+    build:
+      context: https://github.com/VCityTeam/Spatial-Multimedia-DB-docker.git
+      dockerfile: Spatial-Multimedia-DB-context/Dockerfile
+    # FIXME: container_name: Spatial-Multimedia-uwsgi
+    environment:
+      - POSTGRES_ORDBMS=${POSTGRES_ORDBMS}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB_NAME=${POSTGRES_DB_NAME}
+      - SPATIAL_MULTIMEDIA_DB_PORT=${SPATIAL_MULTIMEDIA_DB_PORT}
+      - SPATIAL_MULTIMEDIA_DB_ADMIN_EMAIL=${SPATIAL_MULTIMEDIA_DB_ADMIN_EMAIL}
+      - SPATIAL_MULTIMEDIA_DB_ADMIN_FIRST_NAME=${SPATIAL_MULTIMEDIA_DB_ADMIN_FIRST_NAME}
+      - SPATIAL_MULTIMEDIA_DB_ADMIN_LAST_NAME=${SPATIAL_MULTIMEDIA_DB_ADMIN_LAST_NAME}
+      - SPATIAL_MULTIMEDIA_DB_ADMIN_PASSWORD=${SPATIAL_MULTIMEDIA_DB_ADMIN_PASSWORD}
+      - SPATIAL_MULTIMEDIA_DB_ADMIN_USERNAME=${SPATIAL_MULTIMEDIA_DB_ADMIN_USERNAME}
+    ports:
+      - ${SPATIAL_MULTIMEDIA_DB_PORT}:5000
+    volumes:
+      - .:/api
+    depends_on:
+      - postgres
+
+  udviz:
+    build:
+      context: ./ud-viz-context
+      args:
+        GEOSERVER_FQDN: ${GEOSERVER_FQDN}
+        GEOSERVER_PORT: ${GEOSERVER_PORT}
+        SPATIAL_MULTIMEDIA_DB_FQDN: ${SPATIAL_MULTIMEDIA_DB_FQDN}
+        SPATIAL_MULTIMEDIA_DB_PORT: ${SPATIAL_MULTIMEDIA_DB_PORT}
+        TILESET_CUSTOM_SERVER: ${TILESET_CUSTOM_SERVER}
+        UD_VIZ_PORT: ${UD_VIZ_PORT}
+        UD_VIZ_DEMO_FOLDER: ${UD_VIZ_DEMO_FOLDER}
+    # FIXME: container_name: Spatial-Multimedia-ud-viz
+    command: node ./index.js ../DatAgora_PartDieu ${UD_VIZ_PORT}
+    ports:
+      - ${UD_VIZ_PORT}:${UD_VIZ_PORT}
