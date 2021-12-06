@@ -2,7 +2,13 @@
 
 ## FIXME FIXME FIXME
 
-This demo does not work YET
+This demo does not work YET !
+But it must exists separatly from
+https://ud-viz.vcityliris.data.alpha.grandlyon.com/examples/DocumentWidget/example.html that
+ - is not an example but a demo since it uses specific data
+ - can NOT work as is because of 
+   [mixed content block access](https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content)
+   when accessing the extended document data (from https to http).
 
 ### Concerning the data
 
