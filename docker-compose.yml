@@ -5,13 +5,15 @@ services:
   postgres:
     restart: unless-stopped
     image: postgres:10
-    container_name: Spatial-Multimedia-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB_NAME}
-    volumes:
-      - ./postgres-data/postgres:/var/lib/postgresql/data
+      #volumes:
+      # - ./postgres-data/postgres:/var/lib/postgresql/data
+      # FIXME: check is directonry mount is enough (to allow for multiple .sql
+      # files initialization on modular purposes)
+      # - ./dataset/extendendDoc-2021_02_25.sql:/docker-entrypoint-initdb.d/extendendDoc-2021_02_25.sql
     expose:
       - ${POSTGRES_PORT}
     ports:
@@ -19,10 +21,10 @@ services:
     command: -p ${POSTGRES_PORT}
 
   spatial-multimedia-db:
+    # image: vcity/spatial-multimedia-db-api
     build:
       context: https://github.com/VCityTeam/Spatial-Multimedia-DB-docker.git
       dockerfile: Spatial-Multimedia-DB-context/Dockerfile
-    # FIXME: container_name: Spatial-Multimedia-uwsgi
     environment:
       - POSTGRES_ORDBMS=${POSTGRES_ORDBMS}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -38,23 +40,18 @@ services:
       - SPATIAL_MULTIMEDIA_DB_ADMIN_USERNAME=${SPATIAL_MULTIMEDIA_DB_ADMIN_USERNAME}
     ports:
       - ${SPATIAL_MULTIMEDIA_DB_PORT}:5000
-    volumes:
-      - .:/api
+    # volumes: - ./dataset/upload:/upload
     depends_on:
       - postgres
 
   udviz:
+    # image: vcity/spatial-multimedia-db-udviz
     build:
       context: ./ud-viz-context
       args:
-        GEOSERVER_FQDN: ${GEOSERVER_FQDN}
-        GEOSERVER_PORT: ${GEOSERVER_PORT}
         SPATIAL_MULTIMEDIA_DB_FQDN: ${SPATIAL_MULTIMEDIA_DB_FQDN}
         SPATIAL_MULTIMEDIA_DB_PORT: ${SPATIAL_MULTIMEDIA_DB_PORT}
-        TILESET_CUSTOM_SERVER: ${TILESET_CUSTOM_SERVER}
         UD_VIZ_PORT: ${UD_VIZ_PORT}
-        UD_VIZ_DEMO_FOLDER: ${UD_VIZ_DEMO_FOLDER}
-    # FIXME: container_name: Spatial-Multimedia-ud-viz
-    command: node ./index.js ../DatAgora_PartDieu ${UD_VIZ_PORT}
+    command: node ./index.js ../UD-Viz-Template ${UD_VIZ_PORT}
     ports:
       - ${UD_VIZ_PORT}:${UD_VIZ_PORT}
