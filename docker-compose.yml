@@ -9,16 +9,28 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB_NAME}
-      #volumes:
-      # - ./postgres-data/postgres:/var/lib/postgresql/data
-      # FIXME: check is directonry mount is enough (to allow for multiple .sql
-      # files initialization on modular purposes)
-      # - ./dataset/extendendDoc-2021_02_25.sql:/docker-entrypoint-initdb.d/extendendDoc-2021_02_25.sql
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+        # Reference: refer to the "initialization script" section of
+        #     https://hub.docker.com/_/postgres/
+        # If one wishes to initialize the DB with a previous dump:
+        # 1. copy the dump to some local directory
+        # 2. either remove the above line OR make sure the ./postgres-data
+        #    directory is empty
+        # 3. Add the following line
+        # - ./initialization:/docker-entrypoint-initdb.d      
     expose:
       - ${POSTGRES_PORT}
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     command: -p ${POSTGRES_PORT}
+    # FIXME: couldn't get this to work as suggested by
+    #   https://github.com/peter-evans/docker-compose-healthcheck/blob/master/README.md
+    # healthcheck:
+    #   test: [ "CMD-SHELL", "pg_isready" ]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
 
   spatial-multimedia-db:
     # image: vcity/spatial-multimedia-db-api
@@ -40,9 +52,23 @@ services:
       - SPATIAL_MULTIMEDIA_DB_ADMIN_USERNAME=${SPATIAL_MULTIMEDIA_DB_ADMIN_USERNAME}
     ports:
       - ${SPATIAL_MULTIMEDIA_DB_PORT}:5000
-    # volumes: - ./dataset/upload:/upload
+    volumes:
+      # Because the image documents are not stored in the DB
+      - ./dataset/upload:/Spatial-Multimedia-DB/upload
     depends_on:
       - postgres
+      # postgres:
+      # condition: service_healthy
+    healthcheck:
+      # The following healthcheck is REALLY kludgy (it coulde be that some
+      # hosting contexts require 20s and some others 50s). 
+      # Better use the above `condition: service_healthy` mechanism
+      # as suggested by
+      #   https://github.com/peter-evans/docker-compose-healthcheck/blob/master/README.md
+      # Reference
+      # https://docs.docker.com/compose/compose-file/compose-file-v3/#healthcheck 
+      test: sleep 1
+      start_period: 30s
 
   udviz:
     # image: vcity/spatial-multimedia-db-udviz
