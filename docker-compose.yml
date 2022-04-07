@@ -5,24 +5,38 @@ services:
   postgres:
     restart: unless-stopped
     image: postgres:10
-    container_name: Spatial-Multimedia-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB_NAME}
     volumes:
-      - ./postgres-data/postgres:/var/lib/postgresql/data
+      # - ./postgres-data:/var/lib/postgresql/data
+      # Reference: refer to the "initialization script" section of
+      #     https://hub.docker.com/_/postgres/
+      # If one wishes to initialize the DB with a previous dump:
+      # 1. copy the dump to some local directory
+      # 2. either remove the above line OR make sure the ./postgres-data
+      #    directory is empty
+      # 3. Add the following line
+      - ./initialization:/docker-entrypoint-initdb.d
     expose:
       - ${POSTGRES_PORT}
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     command: -p ${POSTGRES_PORT}
+    # FIXME: couldn't get this to work as suggested by
+    #   https://github.com/peter-evans/docker-compose-healthcheck/blob/master/README.md
+    # healthcheck:
+    #   test: [ "CMD-SHELL", "pg_isready" ]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
 
   spatial-multimedia-db:
+    # image: vcity/spatial-multimedia-db-api
     build:
       context: https://github.com/VCityTeam/Spatial-Multimedia-DB-docker.git
       dockerfile: Spatial-Multimedia-DB-context/Dockerfile
-    # FIXME: container_name: Spatial-Multimedia-uwsgi
     environment:
       - POSTGRES_ORDBMS=${POSTGRES_ORDBMS}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -39,22 +53,31 @@ services:
     ports:
       - ${SPATIAL_MULTIMEDIA_DB_PORT}:5000
     volumes:
-      - .:/api
+      # Because the image documents are not stored in the DB
+      - ./dataset/upload:/Spatial-Multimedia-DB/upload
     depends_on:
       - postgres
+      # postgres:
+      # condition: service_healthy
+    healthcheck:
+      # The following healthcheck is REALLY kludgy (it coulde be that some
+      # hosting contexts require 20s and some others 50s). 
+      # Better use the above `condition: service_healthy` mechanism
+      # as suggested by
+      #   https://github.com/peter-evans/docker-compose-healthcheck/blob/master/README.md
+      # Reference
+      # https://docs.docker.com/compose/compose-file/compose-file-v3/#healthcheck 
+      test: sleep 1
+      start_period: 30s
 
   udviz:
+    # image: vcity/spatial-multimedia-db-udviz
     build:
       context: ./ud-viz-context
       args:
-        GEOSERVER_FQDN: ${GEOSERVER_FQDN}
-        GEOSERVER_PORT: ${GEOSERVER_PORT}
         SPATIAL_MULTIMEDIA_DB_FQDN: ${SPATIAL_MULTIMEDIA_DB_FQDN}
         SPATIAL_MULTIMEDIA_DB_PORT: ${SPATIAL_MULTIMEDIA_DB_PORT}
-        TILESET_CUSTOM_SERVER: ${TILESET_CUSTOM_SERVER}
         UD_VIZ_PORT: ${UD_VIZ_PORT}
-        UD_VIZ_DEMO_FOLDER: ${UD_VIZ_DEMO_FOLDER}
-    # FIXME: container_name: Spatial-Multimedia-ud-viz
-    command: node ./index.js ../DatAgora_PartDieu ${UD_VIZ_PORT}
+    command: node ./index.js ../UD-Viz-Template ${UD_VIZ_PORT}
     ports:
       - ${UD_VIZ_PORT}:${UD_VIZ_PORT}

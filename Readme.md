@@ -1,5 +1,14 @@
 # Spatial multimedia demo
 
+```bash
+mkdir initialization
+cp dataset/database_dump_made_with_pg_admin_from_clean_restart.sql initialization/
+rm -fr postgres-data/
+docker-compose build
+docker-compose pull
+docker-compose up
+```
+
 ## FIXME FIXME FIXME
 
 This demo does not work YET !
